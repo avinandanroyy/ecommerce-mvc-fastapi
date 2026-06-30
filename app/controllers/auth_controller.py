@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import Any
 
 from app.schemas.user import UserCreate, UserLogin, UserUpdate, Token, UserResponse
 from app.schemas.product import ProductResponse
 from app.services.user_service import UserService
-from app.core.deps import get_db, require_auth
+from app.core.database import get_db
+from app.core.deps import require_auth
 from app.core.response import SuccessResponse, ErrorResponse, AuthResponse
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
@@ -23,14 +25,13 @@ async def register(
             name=user_data.name
         )
         if not user:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="Registration failed",
                     message="Failed to create user",
                     code=400
-                ).model_dump(),
-                status_code=400,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=400
             )
         
         from app.core.security import create_access_token, create_refresh_token
@@ -46,35 +47,32 @@ async def register(
             created_at=user.created_at
         )
         
-        return Response(
+        return JSONResponse(
             content=AuthResponse(
                 access_token=access_token,
                 refresh_token=refresh_token,
                 token_type="bearer",
-                user=user_response.model_dump()
-            ).model_dump(),
-            status_code=201,
-            media_type="application/json"
+                user=user_response.model_dump(mode="json")
+            ).model_dump(mode="json"),
+            status_code=201
         )
     except ValueError as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Registration failed",
                 message=str(e),
                 code=400
-            ).model_dump(),
-            status_code=400,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=400
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.post("/login", response_model=AuthResponse)
@@ -89,14 +87,13 @@ async def login(
             password=user_data.password
         )
         if not user:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="Authentication failed",
                     message="Invalid email or password",
                     code=401
-                ).model_dump(),
-                status_code=401,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=401
             )
         
         from app.core.security import create_access_token, create_refresh_token
@@ -112,35 +109,32 @@ async def login(
             created_at=user.created_at
         )
         
-        return Response(
+        return JSONResponse(
             content=AuthResponse(
                 access_token=access_token,
                 refresh_token=refresh_token,
                 token_type="bearer",
-                user=user_response.model_dump()
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+                user=user_response.model_dump(mode="json")
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except ValueError as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Authentication failed",
                 message=str(e),
                 code=401
-            ).model_dump(),
-            status_code=401,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=401
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.post("/refresh", response_model=AuthResponse)
@@ -157,14 +151,13 @@ async def refresh_token(
         user_service = UserService(db)
         user = user_service.get_by_id(user_id)
         if not user:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="Token refresh failed",
                     message="User not found",
                     code=401
-                ).model_dump(),
-                status_code=401,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=401
             )
         
         access_token = create_access_token(data={"sub": user.id, "role": user.role})
@@ -179,35 +172,32 @@ async def refresh_token(
             created_at=user.created_at
         )
         
-        return Response(
+        return JSONResponse(
             content=AuthResponse(
                 access_token=access_token,
                 refresh_token=new_refresh_token,
                 token_type="bearer",
-                user=user_response.model_dump()
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+                user=user_response.model_dump(mode="json")
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except ValueError as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Token refresh failed",
                 message=str(e),
                 code=401
-            ).model_dump(),
-            status_code=401,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=401
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.post("/logout", response_model=SuccessResponse)
@@ -215,22 +205,20 @@ async def logout(
     db: Session = Depends(get_db)
 ) -> Any:
     try:
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
                 data={},
                 message="Successfully logged out",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Logout failed",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )

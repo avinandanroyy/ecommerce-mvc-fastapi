@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import Any
 
 from app.services.order_service import OrderService
-from app.core.deps import get_db, require_auth, require_admin
+from app.core.database import get_db
+from app.core.deps import require_auth, require_admin
 from app.core.response import SuccessResponse, ErrorResponse
 from app.schemas.order import OrderCreate, OrderUpdate, OrderResponse, OrderListResponse
 
@@ -36,34 +38,31 @@ async def create_order(
             updated_at=order.updated_at
         )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
-                data={"order": order_response.model_dump()},
+                data={"order": order_response.model_dump(mode="json")},
                 message="Order created successfully",
                 code=201
-            ).model_dump(),
-            status_code=201,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=201
         )
     except ValueError as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Order creation failed",
                 message=str(e),
                 code=400
-            ).model_dump(),
-            status_code=400,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=400
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.get("/", response_model=SuccessResponse)
@@ -91,26 +90,24 @@ async def list_orders(
                 payment_status=order.payment_status,
                 created_at=order.created_at
             )
-            orders_response.append(order_response.model_dump())
+            orders_response.append(order_response.model_dump(mode="json"))
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
                 data={"orders": orders_response, "total": len(orders_response)},
                 message="Orders retrieved successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.get("/{order_id}", response_model=SuccessResponse)
@@ -124,25 +121,23 @@ async def get_order(
         order = order_service.get_order(order_id)
         
         if not order:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="Order not found",
                     message="Order does not exist",
                     code=404
-                ).model_dump(),
-                status_code=404,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=404
             )
         
         if order.user_id != auth_data.get("sub") and auth_data.get("role") != "admin":
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="Access denied",
                     message="You can only view your own orders",
                     code=403
-                ).model_dump(),
-                status_code=403,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=403
             )
         
         order_response = OrderResponse(
@@ -158,24 +153,22 @@ async def get_order(
             updated_at=order.updated_at
         )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
-                data={"order": order_response.model_dump()},
+                data={"order": order_response.model_dump(mode="json")},
                 message="Order retrieved successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.put("/{order_id}/status", response_model=SuccessResponse)
@@ -190,14 +183,13 @@ async def update_order_status(
         order = order_service.update_order_status(order_id=order_id, status=order_data.status)
         
         if not order:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="Order not found",
                     message="Order does not exist",
                     code=404
-                ).model_dump(),
-                status_code=404,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=404
             )
         
         order_response = OrderResponse(
@@ -213,24 +205,22 @@ async def update_order_status(
             updated_at=order.updated_at
         )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
-                data={"order": order_response.model_dump()},
+                data={"order": order_response.model_dump(mode="json")},
                 message="Order status updated successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.delete("/{order_id}", response_model=SuccessResponse)
@@ -244,42 +234,38 @@ async def cancel_order(
         success = order_service.cancel_order(order_id=order_id, user_id=auth_data.get("sub"))
         
         if not success:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="Order not found",
                     message="Order does not exist",
                     code=404
-                ).model_dump(),
-                status_code=404,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=404
             )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
                 data={},
                 message="Order cancelled successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except ValueError as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Order cancellation failed",
                 message=str(e),
                 code=400
-            ).model_dump(),
-            status_code=400,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=400
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )

@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import Any
 
 from app.services.category_service import CategoryService
-from app.core.deps import get_db, require_admin
+from app.core.database import get_db
+from app.core.deps import require_admin
 from app.core.response import SuccessResponse, ErrorResponse
 from app.schemas.category import CategoryCreate, CategoryUpdate, CategoryResponse, CategoryListResponse
 
@@ -31,34 +33,31 @@ async def create_category(
             updated_at=category.updated_at
         )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
-                data={"category": category_response.model_dump()},
+                data={"category": category_response.model_dump(mode="json")},
                 message="Category created successfully",
                 code=201
-            ).model_dump(),
-            status_code=201,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=201
         )
     except ValueError as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Category creation failed",
                 message=str(e),
                 code=400
-            ).model_dump(),
-            status_code=400,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=400
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.get("/", response_model=SuccessResponse)
@@ -80,26 +79,24 @@ async def list_categories(
                 is_active=category.is_active,
                 created_at=category.created_at
             )
-            category_responses.append(category_response.model_dump())
+            category_responses.append(category_response.model_dump(mode="json"))
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
                 data={"categories": category_responses, "total": len(category_responses)},
                 message="Categories retrieved successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.get("/{category_id}", response_model=SuccessResponse)
@@ -112,14 +109,13 @@ async def get_category(
         category = category_service.get_by_id(category_id)
         
         if not category:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="Category not found",
                     message="Category does not exist",
                     code=404
-                ).model_dump(),
-                status_code=404,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=404
             )
         
         category_response = CategoryResponse(
@@ -131,24 +127,22 @@ async def get_category(
             updated_at=category.updated_at
         )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
-                data={"category": category_response.model_dump()},
+                data={"category": category_response.model_dump(mode="json")},
                 message="Category retrieved successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.put("/{category_id}", response_model=SuccessResponse)
@@ -167,14 +161,13 @@ async def update_category(
         )
         
         if not category:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="Category not found",
                     message="Category does not exist",
                     code=404
-                ).model_dump(),
-                status_code=404,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=404
             )
         
         category_response = CategoryResponse(
@@ -186,34 +179,31 @@ async def update_category(
             updated_at=category.updated_at
         )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
-                data={"category": category_response.model_dump()},
+                data={"category": category_response.model_dump(mode="json")},
                 message="Category updated successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except ValueError as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Category update failed",
                 message=str(e),
                 code=400
-            ).model_dump(),
-            status_code=400,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=400
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.delete("/{category_id}", response_model=SuccessResponse)
@@ -227,32 +217,29 @@ async def delete_category(
         category = category_service.delete(category_id)
         
         if not category:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="Category not found",
                     message="Category does not exist",
                     code=404
-                ).model_dump(),
-                status_code=404,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=404
             )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
                 data={},
                 message="Category deleted successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )

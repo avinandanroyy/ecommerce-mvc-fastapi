@@ -14,10 +14,17 @@ class Settings(BaseSettings):
     # Application
     ENVIRONMENT: str = "development"
     APP_NAME: str = "E-Commerce Backend"
+    PROJECT_NAME: str = "E-Commerce Backend"
+    PROJECT_DESCRIPTION: str = "E-commerce API built with FastAPI"
+    VERSION: str = "1.0.0"
     APP_URL: str = "http://localhost:8000"
+    HOST: str = "0.0.0.0"
+    PORT: int = 8000
+    RELOAD: bool = True
     DEBUG: bool = False
 
     # Database
+    DATABASE_URL: Optional[str] = None
     DATABASE_HOST: str = "localhost"
     DATABASE_PORT: int = 3306
     DATABASE_USER: str = "root"
@@ -25,7 +32,9 @@ class Settings(BaseSettings):
     DATABASE_NAME: str = "ecommerce_db"
 
     @property
-    def DATABASE_URL(self) -> str:
+    def DATABASE_URL_RESOLVED(self) -> str:
+        if self.DATABASE_URL:
+            return self.DATABASE_URL
         return f"mysql+pymysql://{self.DATABASE_USER}:{self.DATABASE_PASSWORD}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
 
     # JWT

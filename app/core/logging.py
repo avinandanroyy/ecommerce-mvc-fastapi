@@ -1,5 +1,6 @@
 import structlog
 from typing import Optional
+import logging
 
 from app.core.config import settings
 
@@ -14,6 +15,8 @@ def get_logger(name: Optional[str] = None):
 
 
 def setup_logging():
+    log_level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
+
     if settings.LOG_FORMAT == "json":
         structlog.configure(
             processors=[
@@ -24,6 +27,7 @@ def setup_logging():
             ],
             context_class=dict,
             logger_factory=structlog.stdlib.LoggerFactory(),
+            wrapper_class=structlog.make_filtering_bound_logger(log_level),
             cache_logger_on_first_call=True,
         )
     else:
@@ -36,15 +40,6 @@ def setup_logging():
             ],
             context_class=dict,
             logger_factory=structlog.stdlib.LoggerFactory(),
+            wrapper_class=structlog.make_filtering_bound_logger(log_level),
             cache_logger_on_first_call=True,
         )
-
-    structlog.configure(
-        processors=[
-            structlog.processors.add_log_level,
-            structlog.processors.TimeStamper(fmt="iso"),
-        ],
-        wrapper_class=structlog.make_filtering_bound_logger(
-            getattr(structlog.stdlib.logging.getLevelForName(settings.LOG_LEVEL), "name", "INFO")
-        ),
-    )

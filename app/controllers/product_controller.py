@@ -1,11 +1,14 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import Any
 
 from app.services.product_service import ProductService
-from app.core.deps import get_db, require_admin
+from app.core.database import get_db
+from app.core.deps import require_admin
 from app.core.response import SuccessResponse, ErrorResponse
-from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse, ProductListWithPagination, ProductSearch
+from app.schemas.pagination import PaginationParams
+from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse, ProductSearch
 
 router = APIRouter(prefix="/api/v1/products", tags=["Products"])
 
@@ -39,34 +42,31 @@ async def create_product(
             updated_at=product.updated_at
         )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
-                data={"product": product_response.model_dump()},
+                data={"product": product_response.model_dump(mode="json")},
                 message="Product created successfully",
                 code=201
-            ).model_dump(),
-            status_code=201,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=201
         )
     except ValueError as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Product creation failed",
                 message=str(e),
                 code=400
-            ).model_dump(),
-            status_code=400,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=400
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.get("/", response_model=SuccessResponse)
@@ -92,45 +92,42 @@ async def list_products(
             max_price=max_price
         )
         
-        products_response = []
+        products_data = []
         for product in result["data"]:
-            product_response = ProductListWithPagination(
-                data=[{
-                    "id": p.id,
-                    "name": p.name,
-                    "description": p.description,
-                    "price": p.price,
-                    "stock_quantity": p.stock_quantity,
-                    "category_id": p.category_id,
-                    "image_url": p.image_url,
-                    "is_active": p.is_active,
-                    "created_at": p.created_at
-                } for p in result["data"]],
-                total=result["meta"]["total"],
-                page=result["meta"]["page"],
-                page_size=result["meta"]["page_size"],
-                total_pages=result["meta"]["total_pages"]
-            )
-            products_response.append(product_response.model_dump())
+            products_data.append({
+                "id": product.id,
+                "name": product.name,
+                "description": product.description,
+                "price": product.price,
+                "stock_quantity": product.stock_quantity,
+                "category_id": product.category_id,
+                "image_url": product.image_url,
+                "is_active": product.is_active,
+                "created_at": product.created_at
+            })
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
-                data=result,
+                data={
+                    "products": products_data,
+                    "total": result["meta"]["total"],
+                    "page": result["meta"]["page"],
+                    "page_size": result["meta"]["page_size"],
+                    "total_pages": result["meta"]["total_pages"]
+                },
                 message="Products retrieved successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.get("/{product_id}", response_model=SuccessResponse)
@@ -143,14 +140,13 @@ async def get_product(
         product = product_service.get_by_id(product_id)
         
         if not product:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="Product not found",
                     message="Product does not exist",
                     code=404
-                ).model_dump(),
-                status_code=404,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=404
             )
         
         product_response = ProductResponse(
@@ -168,24 +164,22 @@ async def get_product(
             updated_at=product.updated_at
         )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
-                data={"product": product_response.model_dump()},
+                data={"product": product_response.model_dump(mode="json")},
                 message="Product retrieved successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.get("/slug/{slug}", response_model=SuccessResponse)
@@ -198,14 +192,13 @@ async def get_product_by_slug(
         product = product_service.get_by_slug(slug)
         
         if not product:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="Product not found",
                     message="Product does not exist",
                     code=404
-                ).model_dump(),
-                status_code=404,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=404
             )
         
         product_response = ProductResponse(
@@ -223,24 +216,22 @@ async def get_product_by_slug(
             updated_at=product.updated_at
         )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
-                data={"product": product_response.model_dump()},
+                data={"product": product_response.model_dump(mode="json")},
                 message="Product retrieved successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.put("/{product_id}", response_model=SuccessResponse)
@@ -258,14 +249,13 @@ async def update_product(
         )
         
         if not product:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="Product not found",
                     message="Product does not exist",
                     code=404
-                ).model_dump(),
-                status_code=404,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=404
             )
         
         product_response = ProductResponse(
@@ -283,34 +273,31 @@ async def update_product(
             updated_at=product.updated_at
         )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
-                data={"product": product_response.model_dump()},
+                data={"product": product_response.model_dump(mode="json")},
                 message="Product updated successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except ValueError as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Product update failed",
                 message=str(e),
                 code=400
-            ).model_dump(),
-            status_code=400,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=400
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.delete("/{product_id}", response_model=SuccessResponse)
@@ -324,34 +311,31 @@ async def delete_product(
         success = product_service.delete(product_id)
         
         if not success:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="Product not found",
                     message="Product does not exist",
                     code=404
-                ).model_dump(),
-                status_code=404,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=404
             )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
                 data={},
                 message="Product deleted successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.get("/top-rated", response_model=SuccessResponse)
@@ -363,45 +347,36 @@ async def get_top_rated_products(
         product_service = ProductService(db)
         products = product_service.get_top_rated_products(limit=limit)
         
-        products_response = []
+        products_data = []
         for product in products:
-            product_response = ProductListWithPagination(
-                data=[{
-                    "id": p.id,
-                    "name": p.name,
-                    "description": p.description,
-                    "price": p.price,
-                    "stock_quantity": p.stock_quantity,
-                    "category_id": p.category_id,
-                    "image_url": p.image_url,
-                    "is_active": p.is_active,
-                    "created_at": p.created_at
-                } for p in products],
-                total=len(products),
-                page=1,
-                page_size=limit,
-                total_pages=1
-            )
-            products_response.append(product_response.model_dump())
+            products_data.append({
+                "id": product.id,
+                "name": product.name,
+                "description": product.description,
+                "price": product.price,
+                "stock_quantity": product.stock_quantity,
+                "category_id": product.category_id,
+                "image_url": product.image_url,
+                "is_active": product.is_active,
+                "created_at": product.created_at
+            })
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
-                data={"products": products_response},
+                data={"products": products_data},
                 message="Top rated products retrieved successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.get("/search", response_model=SuccessResponse)
@@ -414,43 +389,38 @@ async def search_products(
         product_service = ProductService(db)
         products = product_service.search(query=query, skip=pagination.skip, limit=pagination.limit)
         
-        products_response = []
-        for product in products:
-            product_response = ProductListWithPagination(
-                data=[{
-                    "id": p.id,
-                    "name": p.name,
-                    "description": p.description,
-                    "price": p.price,
-                    "stock_quantity": p.stock_quantity,
-                    "category_id": p.category_id,
-                    "image_url": p.image_url,
-                    "is_active": p.is_active,
-                    "created_at": p.created_at
-                } for p in products],
-                total=len(products),
-                page=pagination.skip // pagination.limit + 1,
-                page_size=pagination.limit,
-                total_pages=(len(products) + pagination.limit - 1) // pagination.limit if products else 0
-            )
-            products_response.append(product_response.model_dump())
-        
-        return Response(
+        products_data = [{
+            "id": p.id,
+            "name": p.name,
+            "description": p.description,
+            "price": p.price,
+            "stock_quantity": p.stock_quantity,
+            "category_id": p.category_id,
+            "image_url": p.image_url,
+            "is_active": p.is_active,
+            "created_at": p.created_at
+        } for p in products]
+
+        return JSONResponse(
             content=SuccessResponse(
-                data={"products": products_response, "total": len(products)},
+                data={
+                    "products": products_data,
+                    "total": len(products),
+                    "page": pagination.skip // pagination.limit + 1 if pagination.limit else 1,
+                    "page_size": pagination.limit,
+                    "total_pages": (len(products) + pagination.limit - 1) // pagination.limit if products and pagination.limit else 0
+                },
                 message="Products searched successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )

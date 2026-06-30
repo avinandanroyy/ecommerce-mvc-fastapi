@@ -1,8 +1,19 @@
+from fastapi import Query
 from pydantic import BaseModel, Field
-from typing import List, Generic, TypeVar
+from typing import List, Generic, Optional, TypeVar
 
 
 T = TypeVar("T")
+
+
+class PaginationParams:
+    def __init__(
+        self,
+        skip: int = Query(default=0, ge=0),
+        limit: int = Query(default=10, ge=1, le=100),
+    ):
+        self.skip = skip
+        self.limit = limit
 
 
 class PaginationMeta(BaseModel):

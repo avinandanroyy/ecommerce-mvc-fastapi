@@ -1,15 +1,17 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import Any
 
 from app.services.user_service import UserService
-from app.core.deps import get_db, require_auth, require_admin
+from app.core.database import get_db
+from app.core.deps import require_auth, require_admin
 from app.core.response import SuccessResponse, ErrorResponse
 from app.schemas.user import UserUpdate, UserResponse, UserCreate, UserLogin
 
 router = APIRouter(prefix="/api/v1/users", tags=["Users"])
 
-@router.get("/", response_model=SuccessResponse)
+@router.get("/me", response_model=SuccessResponse)
 async def get_current_user(
     auth_data: dict = Depends(require_auth),
     db: Session = Depends(get_db)
@@ -19,14 +21,13 @@ async def get_current_user(
         user = user_service.get_by_id(auth_data.get("sub"))
         
         if not user:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="User not found",
                     message="User does not exist",
                     code=404
-                ).model_dump(),
-                status_code=404,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=404
             )
         
         user_response = UserResponse(
@@ -38,24 +39,22 @@ async def get_current_user(
             created_at=user.created_at
         )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
-                data={"user": user_response.model_dump()},
+                data={"user": user_response.model_dump(mode="json")},
                 message="User retrieved successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.put("/", response_model=SuccessResponse)
@@ -69,14 +68,13 @@ async def update_current_user(
         user = user_service.get_by_id(auth_data.get("sub"))
         
         if not user:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="User not found",
                     message="User does not exist",
                     code=404
-                ).model_dump(),
-                status_code=404,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=404
             )
         
         update_data = user_data.model_dump(exclude_unset=True)
@@ -91,34 +89,31 @@ async def update_current_user(
             created_at=updated_user.created_at
         )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
-                data={"user": user_response.model_dump()},
+                data={"user": user_response.model_dump(mode="json")},
                 message="User updated successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except ValueError as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Update failed",
                 message=str(e),
                 code=400
-            ).model_dump(),
-            status_code=400,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=400
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.get("/{user_id}", response_model=SuccessResponse)
@@ -132,14 +127,13 @@ async def get_user_by_id(
         user = user_service.get_by_id(user_id)
         
         if not user:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="User not found",
                     message="User does not exist",
                     code=404
-                ).model_dump(),
-                status_code=404,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=404
             )
         
         user_response = UserResponse(
@@ -151,24 +145,22 @@ async def get_user_by_id(
             created_at=user.created_at
         )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
-                data={"user": user_response.model_dump()},
+                data={"user": user_response.model_dump(mode="json")},
                 message="User retrieved successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.delete("/{user_id}", response_model=SuccessResponse)
@@ -182,47 +174,43 @@ async def delete_user(
         user = user_service.get_by_id(user_id)
         
         if not user:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="User not found",
                     message="User does not exist",
                     code=404
-                ).model_dump(),
-                status_code=404,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=404
             )
         
         success = user_service.delete_user(user_id)
         
         if not success:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="Delete failed",
                     message="Failed to delete user",
                     code=400
-                ).model_dump(),
-                status_code=400,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=400
             )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
                 data={},
                 message="User deleted successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.get("/", response_model=SuccessResponse)
@@ -246,24 +234,22 @@ async def list_all_users(
                 is_active=bool(user.is_active),
                 created_at=user.created_at
             )
-            user_responses.append(user_response.model_dump())
+            user_responses.append(user_response.model_dump(mode="json"))
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
                 data={"users": user_responses, "total": len(user_responses)},
                 message="Users retrieved successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )

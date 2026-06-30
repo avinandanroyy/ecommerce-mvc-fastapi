@@ -13,12 +13,16 @@ class CacheService:
         self.is_connected = False
 
     async def connect(self):
-        self.client = redis.from_url(
-            settings.REDIS_URL,
-            decode_responses=True,
-            encoding="utf-8",
-        )
-        self.is_connected = True
+        try:
+            self.client = redis.from_url(
+                settings.REDIS_URL,
+                decode_responses=True,
+                encoding="utf-8",
+            )
+            await self.client.ping()
+            self.is_connected = True
+        except Exception:
+            self.is_connected = False
 
     async def disconnect(self):
         if self.client:

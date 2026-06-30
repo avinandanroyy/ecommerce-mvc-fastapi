@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import Any
 
 from app.services.review_service import ReviewService
-from app.core.deps import get_db, require_auth
+from app.core.database import get_db
+from app.core.deps import require_auth
 from app.core.response import SuccessResponse, ErrorResponse
-from app.schemas.review import ReviewCreate, ReviewUpdate, ReviewResponse, ReviewListWithPagination
+from app.schemas.review import ReviewCreate, ReviewUpdate, ReviewResponse
 
 router = APIRouter(prefix="/api/v1/reviews", tags=["Reviews"])
 
@@ -34,34 +36,31 @@ async def create_review(
             updated_at=review.updated_at
         )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
-                data={"review": review_response.model_dump()},
+                data={"review": review_response.model_dump(mode="json")},
                 message="Review created successfully",
                 code=201
-            ).model_dump(),
-            status_code=201,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=201
         )
     except ValueError as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Review creation failed",
                 message=str(e),
                 code=400
-            ).model_dump(),
-            status_code=400,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=400
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.get("/product/{product_id}", response_model=SuccessResponse)
@@ -80,51 +79,50 @@ async def get_product_reviews(
             limit=pagination.get("limit", 100)
         )
         
-        review_responses = []
+        reviews_data = []
         for review in reviews:
-            review_response = ReviewListWithPagination(
-                data=[{
-                    "id": r.id,
-                    "user_id": r.user_id,
-                    "rating": r.rating,
-                    "review_text": r.review_text,
-                    "created_at": r.created_at
-                } for r in reviews],
-                total=len(reviews),
-                page=pagination.get("skip", 0) // pagination.get("limit", 100) + 1 if reviews else 0,
-                page_size=pagination.get("limit", 100),
-                total_pages=(len(reviews) + pagination.get("limit", 100) - 1) // pagination.get("limit", 100) if reviews else 0
-            )
-            review_responses.append(review_response.model_dump())
+            reviews_data.append({
+                "id": review.id,
+                "user_id": review.user_id,
+                "rating": review.rating,
+                "review_text": review.review_text,
+                "created_at": review.created_at
+            })
         
-        return Response(
+        page = pagination.get("skip", 0) // pagination.get("limit", 100) + 1 if pagination.get("limit", 100) else 1
+        total_pages = (len(reviews) + pagination.get("limit", 100) - 1) // pagination.get("limit", 100) if pagination.get("limit", 100) and reviews else 0
+        
+        return JSONResponse(
             content=SuccessResponse(
-                data={"reviews": review_responses, "total": len(reviews)},
+                data={
+                    "reviews": reviews_data,
+                    "total": len(reviews),
+                    "page": page,
+                    "page_size": pagination.get("limit", 100),
+                    "total_pages": total_pages
+                },
                 message="Reviews retrieved successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except ValueError as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Review retrieval failed",
                 message=str(e),
                 code=400
-            ).model_dump(),
-            status_code=400,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=400
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.put("/{review_id}", response_model=SuccessResponse)
@@ -144,14 +142,13 @@ async def update_review(
         )
         
         if not review:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="Review not found",
                     message="Review does not exist",
                     code=404
-                ).model_dump(),
-                status_code=404,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=404
             )
         
         review_response = ReviewResponse(
@@ -164,34 +161,31 @@ async def update_review(
             updated_at=review.updated_at
         )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
-                data={"review": review_response.model_dump()},
+                data={"review": review_response.model_dump(mode="json")},
                 message="Review updated successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except ValueError as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Review update failed",
                 message=str(e),
                 code=400
-            ).model_dump(),
-            status_code=400,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=400
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.delete("/{review_id}", response_model=SuccessResponse)
@@ -208,44 +202,40 @@ async def delete_review(
         )
         
         if not success:
-            return Response(
+            return JSONResponse(
                 content=ErrorResponse(
                     error="Review not found",
                     message="Review does not exist",
                     code=404
-                ).model_dump(),
-                status_code=404,
-                media_type="application/json"
+                ).model_dump(mode="json"),
+                status_code=404
             )
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
                 data={},
                 message="Review deleted successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except ValueError as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Review deletion failed",
                 message=str(e),
                 code=400
-            ).model_dump(),
-            status_code=400,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=400
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )
 
 @router.get("/stats/{product_id}", response_model=SuccessResponse)
@@ -257,32 +247,29 @@ async def get_product_stats(
         review_service = ReviewService(db)
         stats = review_service.get_product_stats(product_id=product_id)
         
-        return Response(
+        return JSONResponse(
             content=SuccessResponse(
                 data={"stats": stats},
                 message="Product stats retrieved successfully",
                 code=200
-            ).model_dump(),
-            status_code=200,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=200
         )
     except ValueError as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Product stats retrieval failed",
                 message=str(e),
                 code=400
-            ).model_dump(),
-            status_code=400,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=400
         )
     except Exception as e:
-        return Response(
+        return JSONResponse(
             content=ErrorResponse(
                 error="Internal server error",
                 message=str(e),
                 code=500
-            ).model_dump(),
-            status_code=500,
-            media_type="application/json"
+            ).model_dump(mode="json"),
+            status_code=500
         )

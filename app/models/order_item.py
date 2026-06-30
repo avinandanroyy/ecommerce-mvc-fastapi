@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, DateTime, Float, ForeignKey, Index
+from sqlalchemy import Column, Integer, DateTime, Float, ForeignKey, Index, String
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 
@@ -21,5 +21,5 @@ class OrderItem(Base):
 
     __table_args__ = (
         Index("idx_order_id", "order_id"),
-        Index("idx_product_id", "product_id"),
+        Index("idx_order_product_id", "product_id"),
     )

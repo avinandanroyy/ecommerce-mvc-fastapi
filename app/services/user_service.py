@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 from app.core.security import verify_password, get_password_hash
 from app.repositories.user_repository import UserRepository
-from app.repositories.user_profile import UserProfileRepository
+from app.repositories.user_profile_repository import UserProfileRepository
 
 
 class UserService:
